@@ -17,17 +17,37 @@ connectDB();
 
 const app = express();
 
-// Allow the configured frontend URL (and localhost during development)
-const allowedOrigins = [process.env.CLIENT_URL, "http://localhost:5173"].filter(Boolean);
+// Normalize each origin: trim whitespace/CR-LF and strip a trailing slash.
+// CLIENT_URL may also be a comma-separated list.
+const normalizeOrigin = (value) => String(value || "").trim().replace(/\/$/, "");
+
+const allowedOrigins = [
+  ...(process.env.CLIENT_URL || "").split(",").map(normalizeOrigin).filter(Boolean),
+  "http://localhost:5173",
+];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+      if (!origin) return callback(null, true);
+
+      const normalizedOrigin = normalizeOrigin(origin);
+
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        return callback(null, true);
       }
+
+      // Temporary diagnostic logging: shows the exact rejected origin and
+      // the exact allow-list on the server, since a CORS rejection never
+      // reaches morgan (next(err) skips it) and morgan is disabled in
+      // production anyway.
+      console.error(
+        `CORS rejected origin: "${origin}" (normalized: "${normalizedOrigin}"). Allowed: ${JSON.stringify(
+          allowedOrigins
+        )}`
+      );
+
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
@@ -37,9 +57,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-if (process.env.NODE_ENV !== "production") {
-  app.use(morgan("dev"));
-}
+app.use(morgan("dev"));
 
 app.get("/", (req, res) => {
   res.json({ success: true, message: "ShopSphere API is running" });
