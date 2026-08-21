@@ -401,3 +401,11 @@ Built as a practical full-stack web development project using the MERN-style arc
 ## 📄 License
 
 This project is intended for educational and portfolio purposes.
+
+---
+
+## 👩‍💻 Made By
+
+**Made with ❤️ by Sneha**
+
+⭐ If you like this project, feel free to star the repository!
